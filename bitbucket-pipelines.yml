@@ -1,0 +1,42 @@
+image: gradle:7.6-jdk11 # Use Gradle Docker image with JDK 17
+
+pipelines:
+  default:
+    - step:
+        name: Build Docker Image and Push to Docker Hub
+        caches:
+          - gradle  # Cache Gradle dependencies to speed up builds
+        script:
+          # 1. Clone the repository (if necessary, Bitbucket handles this automatically)
+          - git clone https://your-bitbucket-repository-url.git
+          
+          # 2. Build the Spring Boot application using Gradle
+          - ./gradlew clean build -x test  # Skipping tests for faster builds, can be removed if you want tests
+
+          # 3. Log in to Docker Hub (using repository environment variables for credentials)
+          - echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
+
+          # 4. Build the Docker image using the Dockerfile
+          - docker build -t brahmabch/spring-boot-docket-demo:${BITBUCKET_COMMIT} .
+
+          # 5. Push the Docker image to Docker Hub
+          - docker push your-dockerhub-username/spring-boot-docket-demo:${BITBUCKET_COMMIT}
+    - step:
+        name: Deploy to AWS EC2
+        deployment: production
+        script:
+          # 1. Deploy the Docker image to AWS EC2
+          - pipe: atlassian/ssh-run:0.4.3
+            variables:
+              SSH_KEY: $EC2_SSH_PRIVATE_KEY   # Private SSH key for EC2
+              USER: ec2-user                  # EC2 username
+              SERVER: $EC2_PUBLIC_IP          # EC2 Public IP
+              COMMAND: |
+                # 2. SSH into EC2 and pull the latest image from Docker Hub
+                docker pull $DOCKER_USERNAME/your-app-name:$BITBUCKET_COMMIT
+                # 3. Stop and remove the old container (if any)
+                docker stop myapp || true
+                docker rm myapp || true
+                # 4. Run the latest Docker image on the EC2 instance
+                docker run -d --name myapp -p 8080:8080 $DOCKER_USERNAME/your-app-name:$BITBUCKET_COMMIT
+  
