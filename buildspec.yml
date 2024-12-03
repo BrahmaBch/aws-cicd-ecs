@@ -4,6 +4,7 @@ phases:
   pre_build:
     commands:
       - echo Installing dependencies...
+      - chmod +x gradlew
       - ./gradlew clean build -x test  # Clean and build the project using Gradle, skipping tests
       - echo Logging in to Amazon ECR...
       - aws --version  # Check AWS CLI version
