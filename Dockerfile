@@ -1,13 +1,30 @@
-FROM openjdk:11-jdk-slim
+# Use the official OpenJDK 11 image to create the container image
+FROM openjdk:11-jdk-slim AS build
 
-# Set the working directory inside the container
+# Set the working directory in the container
 WORKDIR /app
 
-# Copy the jar file from the Gradle build output to the container
-COPY build/libs/aws-cicd-ecs.o-0.0.1-SNAPSHOT.jar app.jar
+# Copy Gradle wrapper and other necessary files
+COPY gradlew . 
+COPY gradle /gradle
+COPY build.gradle .
+COPY settings.gradle .
+COPY src /src
 
-# Expose port 8080
+# Build the Spring Boot application
+RUN ./gradlew build -x test
+
+# Create a smaller image for running the app
+FROM openjdk:11-jdk-slim
+
+# Set the working directory in the container
+WORKDIR /app
+
+# Copy the built JAR from the build image
+COPY --from=build /app/build/libs/*.jar app.jar
+
+# Expose port 6001 (default Spring Boot app port)
 EXPOSE 6001
 
-# Set the entrypoint for the container
-ENTRYPOINT ["java", "-jar", "/app/app.jar"]
+# Command to run the Spring Boot app
+ENTRYPOINT ["java", "-jar", "app.jar"]

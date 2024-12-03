@@ -1,0 +1,37 @@
+version: 0.2
+
+phases:
+  pre_build:
+    commands:
+      - echo Installing dependencies...
+      - ./gradlew clean build -x test  # Clean and build the project using Gradle, skipping tests
+      - echo Logging in to Amazon ECR...
+      - aws --version  # Check AWS CLI version
+      - REPOSITORY_URI=241533148719.dkr.ecr.ap-south-1.amazonaws.com/aws-cicd-ecs-demo  # ECR repository URI
+      - aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin $REPOSITORY_URI  # Docker login
+      - COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)  # Commit hash for tagging
+      - IMAGE_TAG=build-$(echo $CODEBUILD_BUILD_ID | awk -F":" '{print $2}')  # Image tag based on build ID
+
+  build:
+    commands:
+      - echo Build started on `date`
+      - echo Building the Docker image...
+      - docker build -t $REPOSITORY_URI:latest .  # Build the Docker image with 'latest' tag
+      - docker tag $REPOSITORY_URI:latest $REPOSITORY_URI:$IMAGE_TAG  # Tag image with a unique build tag
+
+  post_build:
+    commands:
+      - echo Build completed on `date`
+      - echo Pushing the Docker images...
+      - docker push $REPOSITORY_URI:latest  # Push 'latest' tagged image
+      - docker push $REPOSITORY_URI:$IMAGE_TAG  # Push the uniquely tagged image
+      - echo Writing image definitions file...
+      - printf '[{"name":"course-service","imageUri":"%s"}]' $REPOSITORY_URI:$IMAGE_TAG > imagedefinitions.json  # Create image definitions
+      - echo $DOCKER_CONTAINER_NAME
+      - echo printing imagedefinitions.json
+      - cat imagedefinitions.json
+
+artifacts:
+  files:
+    - imagedefinitions.json
+    - build/libs/*.jar  # Adjusted for Gradle output
