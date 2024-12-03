@@ -26,7 +26,7 @@ phases:
       - docker push $REPOSITORY_URI:latest  # Push 'latest' tagged image
       - docker push $REPOSITORY_URI:$IMAGE_TAG  # Push the uniquely tagged image
       - echo Writing image definitions file...
-      - printf '[{"name":"course-service","imageUri":"%s"}]' $REPOSITORY_URI:$IMAGE_TAG > imagedefinitions.json  # Create image definitions
+      - printf '[{"name":"aws-cicd-ecs","imageUri":"%s"}]' $REPOSITORY_URI:$IMAGE_TAG > imagedefinitions.json  # Create image definitions
       - echo $DOCKER_CONTAINER_NAME
       - echo printing imagedefinitions.json
       - cat imagedefinitions.json
