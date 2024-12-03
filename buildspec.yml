@@ -4,11 +4,6 @@ phases:
   pre_build:
     commands:
       - echo Installing dependencies...
-      - curl -s https://get.sdkman.io | bash  # Install SDKMAN (for managing Java & Gradle)
-      - source ~/.sdkman/bin/sdkman-init.sh  # Initialize SDKMAN
-      - sdk install java 11.0.11-open  # Install Java 11 (adjust version as needed)
-      - sdk install gradle 7.3  # Install Gradle (adjust version as needed)
-      - chmod +x gradlew
       - ./gradlew clean build -x test  # Clean and build the project using Gradle, skipping tests
       - echo Logging in to Amazon ECR...
       - aws --version  # Check AWS CLI version
